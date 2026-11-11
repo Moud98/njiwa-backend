@@ -1,0 +1,53 @@
+      # App
+      - APP_BASE_URL=https://dalalimsomi.worldspringsoftwares.com
+      - FILE_UPLOAD_DIR=/opt/ikutibnb/uploads
+
+    depends_on:
+      postgres:
+        condition: service_started
+
+    networks:
+      - ikutibnb-network
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  postgres:
+    image: postgres:15
+    container_name: ikutibnb-postgres
+    restart: unless-stopped
+
+    environment:
+      - POSTGRES_DB=dalalimsomi
+      - POSTGRES_USER=baby
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+    networks:
+      - ikutibnb-network
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U baby -d dalalimsomi"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres-data:
+    driver: local
+  uploads-data:
+    driver: local
+
+networks:
+  ikutibnb-network:
+    driver: bridge
+

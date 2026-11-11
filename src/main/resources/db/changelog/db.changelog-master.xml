@@ -1,0 +1,409 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="
+          http://www.liquibase.org/xml/ns/dbchangelog
+          http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+
+     <!-- <changeSet id="9" author="fahm">
+    <sql>
+        ALTER TABLE house_coordinates
+        ALTER COLUMN coordinates TYPE NUMERIC(20,8);
+    </sql>
+</changeSet>
+
+    <changeSet id="10" author="fahm">
+    <sql splitStatements="false">
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_name = 'house'
+                  AND column_name = 'client_id'
+            ) THEN
+                ALTER TABLE house ADD COLUMN client_id BIGINT;
+            END IF;
+        END;
+        $$;
+    </sql>
+</changeSet>
+
+    <changeSet id="11" author="fahm">
+<sql splitStatements="false">
+DO $$
+BEGIN
+IF NOT EXISTS (
+SELECT 1
+FROM information_schema.table_constraints
+WHERE constraint_name = 'fk_house_client'
+) THEN
+ALTER TABLE house
+ADD CONSTRAINT fk_house_client
+FOREIGN KEY (client_id) REFERENCES users(id);
+END IF;
+END;
+$$;
+</sql>
+</changeSet>
+
+    <changeSet id="12" author="fahm">
+        <addColumn tableName="rent_requests">
+            <column name="approval_timestamp" type="timestamp"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="13" author="fahm">
+        <addColumn tableName="rent_requests">
+            <column name="timer" type="bigint"/>
+        </addColumn>
+    </changeSet>
+
+       <changeSet id="14" author="fahm">
+    <addColumn tableName="rent_requests">
+        <column name="end_date" type="varchar(255)">
+            <constraints nullable="true"/>
+        </column>
+    </addColumn>
+</changeSet>
+
+    <changeSet id="15" author="fahm">
+    <sql splitStatements="false">
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_name = 'rent_requests'
+                  AND column_name = 'reminder_sent'
+            ) THEN
+                ALTER TABLE rent_requests ADD COLUMN reminder_sent BOOLEAN DEFAULT false;
+            END IF;
+        END;
+        $$;
+    </sql>
+</changeSet>
+
+    <changeSet id="16" author="fahm">
+    <sql splitStatements="false">
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_name = 'rent_requests'
+                  AND column_name = 'reminder_sent_timestamp'
+            ) THEN
+                ALTER TABLE rent_requests ADD COLUMN reminder_sent_timestamp TIMESTAMP;
+            END IF;
+        END;
+        $$;
+    </sql>
+</changeSet> -->
+
+
+    <changeSet id="17-create-room-tables" author="codex">
+        <createTable tableName="room">
+            <column name="room_id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="house_id" type="BIGINT"><constraints nullable="false" foreignKeyName="fk_room_house" references="house(house_id)"/></column>
+            <column name="price" type="NUMERIC(19,2)"><constraints nullable="false"/></column>
+            <column name="house_type" type="VARCHAR(255)"><constraints nullable="false"/></column>
+            <column name="client_id" type="BIGINT"><constraints foreignKeyName="fk_room_client" references="users(id)"/></column>
+            <column name="state" type="VARCHAR(255)" defaultValue="AVAILABLE"><constraints nullable="false"/></column>
+        </createTable>
+        <createTable tableName="room_image">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="room_id" type="BIGINT"><constraints nullable="false" foreignKeyName="fk_room_image_room" references="room(room_id)"/></column>
+            <column name="image_url" type="VARCHAR(255)"><constraints nullable="false"/></column>
+            <column name="category" type="VARCHAR(255)"/>
+        </createTable>
+    </changeSet>
+    <changeSet id="18-house-price-nullable" author="codex">
+        <dropNotNullConstraint tableName="house" columnName="price" columnDataType="NUMERIC(19,2)"/>
+    </changeSet>
+    <changeSet id="19-room-id-uuid" author="codex">
+        <comment>Room data is intentionally discarded while changing the primary key from BIGINT to UUID.</comment>
+        <dropTable tableName="room_image" cascadeConstraints="true"/>
+        <dropTable tableName="room" cascadeConstraints="true"/>
+
+        <createTable tableName="room">
+            <column name="room_id" type="UUID"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="house_id" type="BIGINT"><constraints nullable="false" foreignKeyName="fk_room_house" references="house(house_id)"/></column>
+            <column name="price" type="NUMERIC(19,2)"><constraints nullable="false"/></column>
+            <column name="house_type" type="VARCHAR(255)"><constraints nullable="false"/></column>
+            <column name="client_id" type="BIGINT"><constraints foreignKeyName="fk_room_client" references="users(id)"/></column>
+            <column name="state" type="VARCHAR(255)" defaultValue="AVAILABLE"><constraints nullable="false"/></column>
+        </createTable>
+        <createTable tableName="room_image">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="room_id" type="UUID"><constraints nullable="false" foreignKeyName="fk_room_image_room" references="room(room_id)"/></column>
+            <column name="image_url" type="VARCHAR(255)"><constraints nullable="false"/></column>
+            <column name="category" type="VARCHAR(255)"/>
+        </createTable>
+    </changeSet>
+    <changeSet id="20-rent-request-room" author="codex">
+        <preConditions onFail="HALT" onError="HALT">
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*)
+                FROM rent_requests rr
+                WHERE (SELECT COUNT(*) FROM room r WHERE r.house_id = rr.house_id) != 1
+            </sqlCheck>
+        </preConditions>
+        <addColumn tableName="rent_requests">
+            <column name="room_id" type="UUID"/>
+        </addColumn>
+        <sql>
+            UPDATE rent_requests rr
+            SET room_id = (
+                SELECT r.room_id FROM room r WHERE r.house_id = rr.house_id
+            )
+        </sql>
+        <addForeignKeyConstraint baseTableName="rent_requests" baseColumnNames="room_id"
+                                 constraintName="fk_rent_request_room"
+                                 referencedTableName="room" referencedColumnNames="room_id"/>
+        <addNotNullConstraint tableName="rent_requests" columnName="room_id" columnDataType="UUID"/>
+        <dropColumn tableName="rent_requests" columnName="house_id"/>
+    </changeSet>
+    <changeSet id="21-room-rental-details" author="codex">
+        <addColumn tableName="room">
+            <column name="client_name" type="VARCHAR(255)"/>
+            <column name="client_phone" type="VARCHAR(255)"/>
+            <column name="status" type="VARCHAR(255)" defaultValue="AVAILABLE">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+        <update tableName="room">
+            <column name="status" value="APPROVED"/>
+            <where>state = 'TAKEN'</where>
+        </update>
+        <sql>
+            UPDATE room room
+            SET client_id = rr.client_id,
+                client_name = rr.client_name,
+                client_phone = rr.client_phone,
+                status = rr.status
+            FROM rent_requests rr
+            WHERE rr.room_id = room.room_id
+        </sql>
+        <dropColumn tableName="room" columnName="state"/>
+        <dropColumn tableName="house" columnName="client_id"/>
+        <dropColumn tableName="rent_requests" columnName="client_name"/>
+        <dropColumn tableName="rent_requests" columnName="client_phone"/>
+        <dropColumn tableName="rent_requests" columnName="status"/>
+    </changeSet>
+    <changeSet id="22-non-user-ids-uuid" author="codex">
+        <comment>Convert every non-user entity identifier from BIGINT to deterministic UUID values while leaving users.id and user foreign keys unchanged.</comment>
+        <sql splitStatements="false"><![CDATA[
+        CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+        DO $$
+        DECLARE
+            constraint_record RECORD;
+            column_record RECORD;
+        BEGIN
+            -- Remove dependent foreign keys while the numeric columns are converted.
+            FOR constraint_record IN
+                SELECT conrelid::regclass AS table_name, conname
+                FROM pg_constraint
+                WHERE contype = 'f'
+                  AND (conrelid::regclass::text IN ('house', 'house_image', 'room', 'room_image', 'rent_requests', 'password_reset_token')
+                       OR confrelid::regclass::text IN ('house', 'house_image', 'room', 'room_image', 'rent_requests', 'password_reset_token'))
+            LOOP
+                EXECUTE format('ALTER TABLE %s DROP CONSTRAINT %I', constraint_record.table_name, constraint_record.conname);
+            END LOOP;
+
+            -- Replace identity-backed primary keys instead of altering their type.
+            FOR column_record IN
+                                SELECT table_name, column_name
+                FROM information_schema.columns
+                WHERE table_schema = current_schema()
+                                    AND ((table_name IN ('house_image', 'room_image', 'rent_requests', 'password_reset_token')
+                                                AND column_name = 'id')
+                                             OR (table_name = 'house' AND column_name = 'house_id'))
+                  AND data_type IN ('bigint', 'integer')
+            LOOP
+                EXECUTE format('ALTER TABLE %I ADD COLUMN id_uuid UUID', column_record.table_name);
+                                EXECUTE format('UPDATE %I SET id_uuid = md5(%I::text)::uuid', column_record.table_name, column_record.column_name);
+                EXECUTE format('ALTER TABLE %I ALTER COLUMN id_uuid SET NOT NULL', column_record.table_name);
+                                EXECUTE format('ALTER TABLE %I DROP COLUMN %I', column_record.table_name, column_record.column_name);
+                                EXECUTE format('ALTER TABLE %I RENAME COLUMN id_uuid TO %I', column_record.table_name, column_record.column_name);
+            END LOOP;
+
+            -- The conversion is deterministic, so old references remain equivalent.
+            FOR column_record IN
+                SELECT table_name, column_name
+                FROM information_schema.columns
+                WHERE table_schema = current_schema()
+                  AND data_type IN ('bigint', 'integer')
+                  AND ((table_name IN ('house', 'house_image', 'room', 'room_image', 'rent_requests', 'password_reset_token')
+                        AND column_name IN ('id', 'house_id', 'room_id'))
+                       OR column_name IN ('house_id', 'room_id'))
+                  AND table_name <> 'users'
+                   AND column_name <> 'id'
+            LOOP
+                IF column_record.column_name = 'id' THEN
+                    EXECUTE format(
+                        'ALTER TABLE %I ALTER COLUMN %I DROP IDENTITY IF EXISTS',
+                        column_record.table_name, column_record.column_name);
+                END IF;
+                EXECUTE format(
+                    'ALTER TABLE %I ALTER COLUMN %I TYPE UUID USING md5(%I::text)::uuid',
+                    column_record.table_name, column_record.column_name, column_record.column_name);
+            END LOOP;
+        END $$;
+
+        ALTER TABLE house ADD CONSTRAINT house_pkey PRIMARY KEY (house_id);
+        ALTER TABLE house_image ADD CONSTRAINT house_image_pkey PRIMARY KEY (id);
+        ALTER TABLE room_image ADD CONSTRAINT room_image_pkey PRIMARY KEY (id);
+        ALTER TABLE rent_requests ADD CONSTRAINT rent_requests_pkey PRIMARY KEY (id);
+        ALTER TABLE password_reset_token ADD CONSTRAINT password_reset_token_pkey PRIMARY KEY (id);
+
+        ALTER TABLE house
+            ADD CONSTRAINT fk_house_host FOREIGN KEY (host_id) REFERENCES users(id),
+            ADD CONSTRAINT fk_house_agent FOREIGN KEY (agent_id) REFERENCES users(id);
+        ALTER TABLE house_image
+            ADD CONSTRAINT fk_house_image_house FOREIGN KEY (house_id) REFERENCES house(house_id);
+        ALTER TABLE room
+            ADD CONSTRAINT fk_room_house FOREIGN KEY (house_id) REFERENCES house(house_id),
+            ADD CONSTRAINT fk_room_client FOREIGN KEY (client_id) REFERENCES users(id);
+        ALTER TABLE room_image
+            ADD CONSTRAINT fk_room_image_room FOREIGN KEY (room_id) REFERENCES room(room_id);
+        ALTER TABLE rent_requests
+            ADD CONSTRAINT fk_rent_request_client FOREIGN KEY (client_id) REFERENCES users(id),
+            ADD CONSTRAINT fk_rent_request_owner FOREIGN KEY (house_owner_id) REFERENCES users(id),
+            ADD CONSTRAINT fk_rent_request_agent FOREIGN KEY (agent_id) REFERENCES users(id),
+            ADD CONSTRAINT fk_rent_request_room FOREIGN KEY (room_id) REFERENCES room(room_id);
+        ]]></sql>
+    </changeSet>
+    <changeSet id="23-collection-join-ids-uuid" author="codex">
+        <comment>Convert Hibernate-generated collection-table join columns to UUID.</comment>
+        <sql splitStatements="false"><![CDATA[
+        DO $$
+        DECLARE
+            column_record RECORD;
+        BEGIN
+            FOR column_record IN
+                SELECT table_name, column_name
+                FROM information_schema.columns
+                WHERE table_schema = current_schema()
+                  AND data_type IN ('bigint', 'integer')
+                  AND table_name <> 'users'
+                  AND (column_name LIKE '%house_id' OR column_name LIKE '%room_id')
+            LOOP
+                EXECUTE format(
+                    'ALTER TABLE %I ALTER COLUMN %I TYPE UUID USING md5(%I::text)::uuid',
+                    column_record.table_name, column_record.column_name, column_record.column_name);
+            END LOOP;
+        END $$;
+        ]]></sql>
+    </changeSet>
+    <changeSet id="24-house-agent-nullable" author="codex">
+        <comment>Allow host-owned houses to be created without an assigned agent.</comment>
+        <dropNotNullConstraint tableName="house" columnName="agent_id" columnDataType="BIGINT"/>
+    </changeSet>
+    <changeSet id="25-user-ids-uuid-preserve-existing-data" author="codex">
+        <comment>Convert users.id and every existing foreign key to users.id to UUID without deleting user or related records.</comment>
+        <sql splitStatements="false"><![CDATA[
+        DO $$
+        DECLARE
+            constraint_record RECORD;
+            column_record RECORD;
+            primary_key_name TEXT;
+        BEGIN
+            -- Capture all real user foreign keys before dropping them. This covers every
+            -- relationship column regardless of its application-level field name.
+            CREATE TEMP TABLE user_fk_definitions (
+                table_name TEXT NOT NULL,
+                constraint_name TEXT NOT NULL,
+                constraint_definition TEXT NOT NULL
+            ) ON COMMIT DROP;
+            CREATE TEMP TABLE user_fk_columns (
+                table_name TEXT NOT NULL,
+                column_name TEXT NOT NULL
+            ) ON COMMIT DROP;
+
+            INSERT INTO user_fk_definitions (table_name, constraint_name, constraint_definition)
+            SELECT conrelid::regclass::text, conname, pg_get_constraintdef(oid)
+            FROM pg_constraint
+            WHERE contype = 'f' AND confrelid = 'users'::regclass;
+
+            INSERT INTO user_fk_columns (table_name, column_name)
+            SELECT c.conrelid::regclass::text, a.attname
+            FROM pg_constraint c
+            CROSS JOIN LATERAL unnest(c.conkey) AS key_column(attnum)
+            JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = key_column.attnum
+            WHERE c.contype = 'f' AND c.confrelid = 'users'::regclass;
+
+            FOR constraint_record IN
+                SELECT table_name, constraint_name FROM user_fk_definitions
+            LOOP
+                EXECUTE format('ALTER TABLE %s DROP CONSTRAINT %I',
+                    constraint_record.table_name, constraint_record.constraint_name);
+            END LOOP;
+
+            -- The UUID is deterministic for an old numeric ID, so each child reference
+            -- receives exactly the UUID of the user it already points to.
+            IF EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_schema = current_schema()
+                  AND table_name = 'users' AND column_name = 'id'
+                  AND data_type IN ('smallint', 'integer', 'bigint')
+            ) THEN
+                SELECT conname INTO primary_key_name
+                FROM pg_constraint
+                WHERE contype = 'p' AND conrelid = 'users'::regclass;
+
+                IF primary_key_name IS NOT NULL THEN
+                    EXECUTE format('ALTER TABLE users DROP CONSTRAINT %I', primary_key_name);
+                END IF;
+                ALTER TABLE users ALTER COLUMN id DROP IDENTITY IF EXISTS;
+                ALTER TABLE users ALTER COLUMN id TYPE UUID USING md5(id::text)::uuid;
+
+                FOR column_record IN
+                    SELECT table_name, column_name FROM user_fk_columns
+                LOOP
+                    EXECUTE format(
+                        'ALTER TABLE %s ALTER COLUMN %I TYPE UUID USING md5(%I::text)::uuid',
+                        column_record.table_name, column_record.column_name, column_record.column_name);
+                END LOOP;
+
+                ALTER TABLE users ADD CONSTRAINT users_pkey PRIMARY KEY (id);
+            END IF;
+
+            FOR constraint_record IN
+                SELECT table_name, constraint_name, constraint_definition FROM user_fk_definitions
+            LOOP
+                EXECUTE format('ALTER TABLE %s ADD CONSTRAINT %I %s',
+                    constraint_record.table_name, constraint_record.constraint_name,
+                    constraint_record.constraint_definition);
+            END LOOP;
+        END $$;
+        ]]></sql>
+    </changeSet>
+    <changeSet id="26-room-name" author="codex">
+        <addColumn tableName="room">
+            <column name="room_name" type="VARCHAR(255)"/>
+        </addColumn>
+    </changeSet>
+    <changeSet id="27-house-total-rooms" author="codex">
+        <addColumn tableName="house">
+            <column name="total_rooms" type="INT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+        <sql>UPDATE house SET total_rooms = (SELECT COUNT(*) FROM room WHERE room.house_id = house.house_id)</sql>
+    </changeSet>
+    <changeSet id="28-room-payment-duration" author="codex">
+        <addColumn tableName="room">
+            <column name="payment_duration" type="BIGINT"/>
+        </addColumn>
+        <sql>UPDATE room r SET payment_duration = h.payment_duration FROM house h WHERE r.house_id = h.house_id</sql>
+    </changeSet>
+    <changeSet id="29-user-review" author="codex">
+        <addColumn tableName="users">
+            <column name="review" type="JSONB"/>
+        </addColumn>
+    </changeSet>
+</databaseChangeLog>

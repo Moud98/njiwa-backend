@@ -1,0 +1,1189 @@
+DALALIMSOMI API DOCUMENCTATION
+
+================ IDENTIFIER CONVENTION ================
+
+- User IDs are UUIDs. This includes `users.id`, JWT `id`, `hostId`, `agentId`,
+    `clientId`, and `houseOwnerId` when they refer to a user.
+- All non-user entity IDs are UUID strings:
+    - `houseId`
+    - `roomId`
+    - house-image IDs
+    - room-image IDs
+    - rent-request `id` and `rentRequestId`
+    - password-reset-token IDs
+- UUID path parameters must use the canonical form, for example:
+    `7809f718-8b2b-4369-9eb0-e00c7c37815e`.
+- Existing databases are converted by Liquibase changesets
+    `22-non-user-ids-uuid`, `23-collection-join-ids-uuid`, and
+    `25-user-ids-uuid-preserve-existing-data`. Do not edit already
+    applied changesets because that changes their checksums.
+
+Authentication & Registration 
+
+====> User create its own  account by continue with google with URL below
+URL: http://localhost:8080/oauth2/authorization/google
+
+For the mobile app, start Google sign-in at:
+URL: http://localhost:8080/oauth2/authorization/google-mobile
+After sign-in, the API redirects to njiwaapp://auth/callback with accessToken and user details in the query string. Register the njiwaapp URI scheme in the mobile app and handle this deep link. If sign-in fails, the same deep link includes an error query parameter.
+
+RESPONCE:{
+  "accessToken": "<JWT containing a UUID id claim>",
+  "user": {
+    "role": "CLIENT",
+    "phonenumber": null,
+    "profilepicture": "https://lh3.googleusercontent.com/a/ACg8ocL5HFPBSpvMMZ9A_kpCvZvsLH6voLUqiMm-DY79Dc30ynHnbdY=s96-c",
+    "id": "12121212-1212-4121-8121-121212121212",
+    "fullname": "worldspring softwares",
+    "email": "worldspringsoftwares@gmail.com"
+  }
+}
+
+
+====> user registered
+Method: POST
+URL : http://localhost:8080/user
+JSON: {
+  "fullname": "fahm",
+  "email": "brinab9@gmail.com",
+  "password": "fahm..03",
+  "profilepicture": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA",
+  "phonenumber": "+255712345678",
+  "role": "CLIENT"
+}
+RESPONCE: {
+    "role": "CLIENT",
+    "phonenumber": "+255712345678",
+    "profilepicture": "http://localhost:8080/uploads/profile_pictures/183b3f9f-53a4-450d-b7c6-0b9cccf74488.png",
+    "review": null,
+    "id": "35353535-3535-4353-8353-353535353535",
+    "fullname": "fahm",
+    "email": "mkali@gmail.com"
+}
+
+
+====> user login
+Method: POST
+URL : http://localhost:8080/auth/login
+JSON : {
+        "email": "fahm@gmail.com",
+        "password": "fahm..03"
+}
+RESPONCE: {
+  "accessToken": "<JWT containing a UUID id claim>",
+  "user": {
+      "id": "33333333-3333-4333-8333-333333333333",
+      "email": "khan03@gmail.com",
+      "role": {
+          "name": "CLIENT",
+          "permissions": [
+              "VIEW_HOUSE",
+              "MAKE_BOOKING"
+          ]
+      },
+      "fullname": "fahm",
+      "profilePicture": "http://localhost:8080/uploads/profile_pictures/9684fd59-679c-4770-bf44-3befd60070c2.png",
+      "phonenumber": "+255712345678"
+  }
+}
+
+
+
+====> Get all users 
+Method: GET
+URL : http://localhost:8080/user
+SEARCH PARAMS : role=CLIENT and fullname=client
+URL : http://localhost:8080/user?role=CLIENT&fullname=client
+Headers : {
+    "Authorization": "Bearer <token>"
+}
+RESPONCE : [
+    {
+        "id": "11111111-1111-4111-8111-111111111111",
+        "fullname": "client",
+        "email": "client@gmail.com",
+        "profilepicture": "http://localhost:8080/uploads/profile_pictures/9c5e65c3-2a29-4ea1-a39a-6622c375d360.png",
+        "phonenumber": "+255712345678",
+        "role": "CLIENT",
+        "review": [
+            {
+                "name": "Jane Doe",
+                "rate": 5,
+                "message": "Great stay"
+            }
+        ]
+    }
+    {
+        "id": "22222222-2222-4222-8222-222222222222",
+        "fullname": "client03",
+        "email": "client3@gmail.com",
+        "profilepicture": null,
+        "phonenumber": "0655119264",
+        "role": "CLIENT",
+        "review": null
+    },
+    {
+        "id": "33333333-3333-4333-8333-333333333333",
+        "fullname": "client4",
+        "email": "client4@gmail.com",
+        "profilepicture": null,
+        "phonenumber": "0655119264",
+        "role": "CLIENT",
+        "review": null
+    }
+]
+
+
+====> Get all users where role is HOST
+Method: GET
+URL : http://localhost:8080/user/hosts
+
+
+====> Get user by id
+Method: GET
+URL : http://localhost:8080/user/:userId
+Headers : {
+    "Authorization": "Bearer <token>"
+}
+
+====> Get renter user by ADMIN only
+Method: GET
+URL : http://localhost:8080/user/renters?page=0&size=10&fullname=client
+
+Headers : {
+    "Authorization": "Bearer <token >"
+}   
+RESPONCE : [
+    {
+        "id": "31313131-3131-4313-8313-313131313131",
+        "fullname": "client",
+        "email": "client@gmail.com",
+        "profilepicture": "http://localhost:8080/uploads/profile_pictures/9c5e65c3-2a29-4ea1-a39a-6622c375d360.png",
+        "phonenumber": "+255712345678",
+        "role": "CLIENT",
+        "review": null
+    }
+]
+
+
+====> Update user by id
+Method: PATCH
+URL : http://localhost:8080/user/:userId
+Headers : {
+    "Authorization": "Bearer <token>"
+}
+Amongo the entity in json can be updated
+JSON : {
+  "fullname": "fahm",
+  "email": "brinab9@gmail.com",
+  "password": "fahm..03",
+  "profilepicture": "data:image/png;base64,your-base64-string",
+  "phonenumber": "+255712345678",
+  "role": "CLIENT",
+  "review": [
+    {
+      "rate": 5,
+      "message": "Great stay"
+    }
+  ]
+}
+
+The `review` field is nullable. Include review objects in this PATCH request to append them to the target user's existing review array; existing entries are retained. Any authenticated CLIENT, HOST, AGENT, or ADMIN can submit a review to another user. The reviewer's name is taken from the authenticated account, so it should not be included in the request. A user cannot review their own account.
+
+
+====> change password
+Method: PATCH
+URL : http://localhost:8080/user/passwd/:userId
+JSON : {
+  "currentPassword": "12345678",
+  "newPassword": "fahm..03"
+}
+
+
+====> Delete user by id
+Method: DELETE
+URL : http://localhost:8080/user/:userId
+Headers : {
+    "Authorization": "Bearer <token>"
+}
+
+
+====> Forgot password - request OTP
+Method: POST
+URL : http://localhost:8080/auth/forgot-password
+JSON : {
+  "email": "fahm@gmail.com"
+}
+
+
+====> Verify OTP
+Method: POST    
+URL : http://localhost:8080/auth/verify-otp
+JSON : {    
+    "otp" : "123456"    
+}
+
+
+====> Reset password using OTP
+Method: POST
+URL : http://localhost:8080/auth/reset-password
+JSON : {
+  "email": "fahm@gmail.com",
+  "newPassword": "fahm..03"
+}
+
+
+================ HOUSE MANAGEMENT API =================
+
+House stores shared property information: location, house number/name, host, agent,
+payment duration, total room count, description, services, documents, coordinates,
+payment methods, rating, reviews, and optional images. Room stores rental-specific
+information: payment duration, price, houseType, clientId, clientName, clientPhone,
+and status. Create the house first, then add rooms using the houseId returned by
+the house create endpoint.
+
+Database columns added:
+- house.total_rooms (API name: totalRooms): count of rooms attached to the house.
+  It is initialized for existing houses and maintained automatically when rooms
+  are created or deleted.
+- room.payment_duration (API name: paymentDuration): rental period in months for
+  that room. It is copied automatically from the house paymentDuration when a
+  room is created, and existing rooms are synchronized when the house duration
+  is updated. Clients do not provide this field when creating or updating rooms.
+
+====> Register a new house by role HOST, AGENT and ADMIN
+When the frontend has multiple images, send them in the `images` array in this request. The backend saves the house, uses the first image's `base64Data` as the primary `imageUrl`, then saves the remaining images with their categories against the newly created house ID. The frontend makes one request; it does not need to call the image upload endpoint separately for these images. `imageUrl` remains supported for clients sending only one primary image.
+Replace each `<...-base64>` example below with the complete Base64 data URL produced from the actual image. The angle-bracket text is a placeholder and must not be sent in the request.
+Method: POST
+URL : http://localhost:8080/house
+Headers : {
+    "Authorization": "Bearer <token>"
+}
+JSON :{
+  "agentId": "33333333-3333-4333-8333-333333333333",
+  "location": "Mbeya, Tanzania",
+  "houseNumber": "H-12",
+  "houseName": "Green Villa",
+  "paymentDuration": 12,
+  "houseDescription": "This beautiful and thoughtfully designed home offers.",
+  "rating": "4.689",
+  "hostId": "22222222-2222-4222-8222-222222222222",
+  "reviews": "456",
+  "houseServices": [
+    "wifi",
+    "water",
+    "electricity"
+  ],
+
+  "images": [
+    { "base64Data": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA", "category": "outside" },
+    { "base64Data": "data:image/jpeg;base64,iVBORw0KGgoAAAANSUhEUgAA", "category": "bed-room" },
+    { "base64Data": "data:image/webp;base64,iVBORw0KGgoAAAANSUhEUgAA", "category": "bath-room" }
+  ],
+
+  "coordinates": [-8.9091, 33.4589],
+
+  "paymentMethods": [
+    { "method": "M-pesa", "details": "+255673542345" },
+    { "method": "Halo-pesa", "details": "+25565676345" }
+  ],
+
+  "documents": [
+    "https://example.com/docs/ownership.pdf",
+    "https://example.com/docs/inspection-report.pdf"
+  ]
+}
+
+RESPONCE:{
+    "houseId": "5808539e-0259-4f54-b078-df9d044f9327",
+    "location": "Mbeya, Tanzania",
+    "houseNumber": "H-12",
+    "houseName": "Green Villa",
+    "rating": 4.689,
+    "reviews": 456,
+    "totalRooms": 0,
+    "paymentDuration": 12,
+    "houseDescription": "This beautiful and thoughtfully designed home offers.",
+    "houseServices": [
+        "wifi",
+        "electricity",
+        "water"
+    ],
+    "imageUrl": "http://localhost:8080/uploads/house_images/house_5808539e-0259-4f54-b078-df9d044f9327_a0170d2b-4af5-4233-8472-6196880805c6.png",
+    "coordinates": [
+        -8.9091,
+        33.4589
+    ],
+    "paymentMethods": [
+        {
+            "method": "M-pesa",
+            "details": "+255673542345"
+        },
+        {
+            "method": "Halo-pesa",
+            "details": "+25565676345"
+        }
+    ],
+    "documents": [
+        "https://example.com/docs/ownership.pdf",
+        "https://example.com/docs/inspection-report.pdf"
+    ],
+    "hostId": {
+        "id": "c81e728d-9d4c-2f63-6f06-7f89cc14862c",
+        "fullname": "host",
+        "email": "host@gmail.com",
+        "profilepicture": "http://localhost:8080/uploads/profile_pictures/user_c81e728d-9d4c-2f63-6f06-7f89cc14862c_bb8587c6-298a-4e1f-b9ca-fa75bd2ff19d.jpeg",
+        "phonenumber": "255687168841",
+        "role": "HOST"
+    },
+    "agentId": {
+        "id": "eccbc87e-4b5c-e2fe-2830-8fd9f2a7baf3",
+        "fullname": "agent",
+        "email": "agent@gmail.com",
+        "profilepicture": "http://localhost:8080/uploads/profile_pictures/user_eccbc87e-4b5c-e2fe-2830-8fd9f2a7baf3_0a0bf0d6-b2f7-4ebd-a92f-a6cd7dbbf68d.jpeg",
+        "phonenumber": "255676383929",
+        "role": "AGENT"
+    },
+    "images": [
+        {
+            "imageUrl": "http://localhost:8080/uploads/house_images/house_5808539e-0259-4f54-b078-df9d044f9327_54b4c5a2-df4a-40b9-ba5b-e035cb64f9b7.jpeg",
+            "category": "bed-room"
+        },
+        {
+            "imageUrl": "http://localhost:8080/uploads/house_images/house_5808539e-0259-4f54-b078-df9d044f9327_b8ccc602-9d17-4c04-84c3-d70778260c07.webp",
+            "category": "bath-room"
+        }
+    ],
+    "rooms": []
+}
+
+
+====> Get all houses
+Method: GET
+URL : http://localhost:8080/house/all
+Headers : {
+    "Authorization": "Bearer <token>"
+}
+RESPONCE: {
+    "houses": {
+    "houses": [
+        {
+            "houseId": "c4ca4238-a0b9-2382-0dcc-509a6f75849b",
+            "location": "Mbeya, Tanzania",
+            "houseNumber": "H-12",
+            "houseName": "Green Villa",
+            "rating": 4.69,
+            "reviews": 456.00,
+            "paymentDuration": 12,
+            "totalRooms": 2,
+            "houseDescription": "This beautiful and thoughtfully designed home offers.",
+            "houseServices": [
+                "wifi",
+                "electricity",
+                "water"
+            ],
+            "imageUrl": "http://localhost:8080/uploads/house_images/house_1_e151a597-3554-4afe-8903-567783b70cc0.png",
+            "coordinates": [
+                -8.90910000,
+                33.45890000
+            ],
+            "paymentMethods": [
+                {
+                    "method": "M-pesa",
+                    "details": "+255673542345"
+                },
+                {
+                    "method": "Halo-pesa",
+                    "details": "+25565676345"
+                }
+            ],
+            "documents": [
+                "https://example.com/docs/ownership.pdf",
+                "https://example.com/docs/inspection-report.pdf"
+            ],
+            "hostId": {
+                "id": "22222222-2222-4222-8222-222222222222",
+                "fullname": "host",
+                "email": "host@gmail.com",
+                "profilepicture": null,
+                "phonenumber": "255687168841",
+                "role": "HOST"
+            },
+            "agentId": {
+                "id": "33333333-3333-4333-8333-333333333333",
+                "fullname": "agent",
+                "email": "agent@gmail.com",
+                "profilepicture": null,
+                "phonenumber": "255676383929",
+                "role": "AGENT"
+            },
+            "images": [],
+            "rooms": [
+                {
+                    "roomId": "7809f718-8b2b-4369-9eb0-e00c7c37815e",
+                    "houseId": "c4ca4238-a0b9-2382-0dcc-509a6f75849b",
+                    "price": 15000.00,
+                    "houseType": "SINGLE_ROOM",
+                    "clientId": null,
+                    "clientName": null,
+                    "clientPhone": null,
+                    "status": "AVAILABLE",
+                    "images": [
+                        {
+                            "imageUrl": "http://localhost:8080/uploads/room_images/room_7809f718-8b2b-4369-9eb0-e00c7c37815e_379fa372-f6a4-459e-8078-1bcac9454e34.jpeg",
+                            "category": "bedroom"
+                        }
+                    ]
+                },
+                {
+                    "roomId": "53d5a12b-8dce-4024-95f9-80fc6069d20d",
+                    "houseId": "c4ca4238-a0b9-2382-0dcc-509a6f75849b",
+                    "price": 15000.00,
+                    "houseType": "SINGLE_ROOM",
+                    "clientId": null,
+                    "clientName": null,
+                    "clientPhone": null,
+                    "status": "AVAILABLE",
+                    "images": [
+                        {
+                            "imageUrl": "http://localhost:8080/uploads/room_images/room_53d5a12b-8dce-4024-95f9-80fc6069d20d_33955bf5-0694-4c02-9c09-05f460924dfe.jpeg",
+                            "category": "bedroom"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "houseId": "c81e728d-9d4c-2f63-6f06-7f89cc14862c",
+            "location": "Mbeya, Tanzania",
+            "houseNumber": "H-12",
+            "houseName": "Green Villa",
+            "rating": 4.69,
+            "reviews": 456.00,
+            "paymentDuration": 12,
+            "houseDescription": "This beautiful and thoughtfully designed home offers.",
+            "houseServices": [
+                "wifi",
+                "electricity",
+                "water"
+            ],
+            "imageUrl": "http://localhost:8080/uploads/house_images/house_2_c73c2443-2d96-4805-93d5-8f8ccbbc1e48.png",
+            "coordinates": [
+                -8.90910000,
+                33.45890000
+            ],
+            "paymentMethods": [
+                {
+                    "method": "M-pesa",
+                    "details": "+255673542345"
+                },
+                {
+                    "method": "Halo-pesa",
+                    "details": "+25565676345"
+                }
+            ],
+            "documents": [
+                "https://example.com/docs/ownership.pdf",
+                "https://example.com/docs/inspection-report.pdf"
+            ],
+            "hostId": {
+                "id": "22222222-2222-4222-8222-222222222222",
+                "fullname": "host",
+                "email": "host@gmail.com",
+                "profilepicture": null,
+                "phonenumber": "255687168841",
+                "role": "HOST"
+            },
+            "agentId": {
+                "id": "33333333-3333-4333-8333-333333333333",
+                "fullname": "agent",
+                "email": "agent@gmail.com",
+                "profilepicture": null,
+                "phonenumber": "255676383929",
+                "role": "AGENT"
+            },
+            "images": [],
+            "rooms": [
+                {
+                    "roomId": "7ea94a50-09ed-4031-9b19-5c82b8ced6bc",
+                    "houseId": "c81e728d-9d4c-2f63-6f06-7f89cc14862c",
+                    "price": 15000.00,
+                    "houseType": "SINGLE_ROOM",
+                    "clientId": null,
+                    "clientName": null,
+                    "clientPhone": null,
+                    "status": "AVAILABLE",
+                    "images": [
+                        {
+                            "imageUrl": "http://localhost:8080/uploads/room_images/room_7ea94a50-09ed-4031-9b19-5c82b8ced6bc_7831d686-d8b5-4690-9c13-d62b03aca357.jpeg",
+                            "category": "bedroom"
+                        }
+                    ]
+                },
+                {
+                    "roomId": "edb51c51-27b1-4305-8dc4-0e45c1d8c09c",
+                    "houseId": "c81e728d-9d4c-2f63-6f06-7f89cc14862c",
+                    "price": 15000.00,
+                    "houseType": "SINGLE_ROOM",
+                    "clientId": "44444444-4444-4444-8444-444444444444",
+                    "clientName": "client",
+                    "clientPhone": "0687168841",
+                    "status": "APPROVED",
+                    "images": [
+                        {
+                            "imageUrl": "http://localhost:8080/uploads/room_images/room_edb51c51-27b1-4305-8dc4-0e45c1d8c09c_1141c627-7082-46ef-a2f3-ad2135d30194.jpeg",
+                            "category": "bedroom"
+                        }
+                    ]
+                },
+                {
+                    "roomId": "5cd26b60-f32c-4750-ad11-192276c1c3ef",
+                    "houseId": "c81e728d-9d4c-2f63-6f06-7f89cc14862c",
+                    "price": 15000.00,
+                    "houseType": "SINGLE_ROOM",
+                    "clientId": "44444444-4444-4444-8444-444444444444",
+                    "clientName": "client",
+                    "clientPhone": "0687168841",
+                    "status": "APPROVED",
+                    "images": [
+                        {
+                            "imageUrl": "http://localhost:8080/uploads/room_images/room_5cd26b60-f32c-4750-ad11-192276c1c3ef_d641c5a0-57ba-439f-a808-161275cc7005.jpeg",
+                            "category": "bedroom"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "houseId": "eccbc87e-4b5c-e2fe-2830-8fd9f2a7baf3",
+            "location": "Mbeya, Tanzania",
+            "houseNumber": "H-12",
+            "houseName": "Green Villa",
+            "rating": 4.69,
+            "reviews": 456.00,
+            "paymentDuration": 12,
+            "houseDescription": "This beautiful and thoughtfully designed home offers.",
+            "houseServices": [
+                "wifi",
+                "electricity",
+                "water"
+            ],
+            "imageUrl": "http://localhost:8080/uploads/house_images/house_3_37c4b97c-934d-478d-9212-133af5b0cb9d.png",
+            "coordinates": [
+                -8.90910000,
+                33.45890000
+            ],
+            "paymentMethods": [
+                {
+                    "method": "M-pesa",
+                    "details": "+255673542345"
+                },
+                {
+                    "method": "Halo-pesa",
+                    "details": "+25565676345"
+                }
+            ],
+            "documents": [
+                "https://example.com/docs/ownership.pdf",
+                "https://example.com/docs/inspection-report.pdf"
+            ],
+            "hostId": {
+                "id": "22222222-2222-4222-8222-222222222222",
+                "fullname": "host",
+                "email": "host@gmail.com",
+                "profilepicture": null,
+                "phonenumber": "255687168841",
+                "role": "HOST"
+            },
+            "agentId": {
+                "id": "33333333-3333-4333-8333-333333333333",
+                "fullname": "agent",
+                "email": "agent@gmail.com",
+                "profilepicture": null,
+                "phonenumber": "255676383929",
+                "role": "AGENT"
+            },
+            "images": [
+                {
+                    "imageUrl": "http://localhost:8080/uploads/house_images/house_3_a219d3f1-d59d-41f5-a1a5-8265bb10cb0f.png",
+                    "category": "outside"
+                },
+                {
+                    "imageUrl": "http://localhost:8080/uploads/house_images/house_3_9d667d37-2947-414c-95db-664c6dff1335.jpeg",
+                    "category": "bed-room"
+                },
+                {
+                    "imageUrl": "http://localhost:8080/uploads/house_images/house_3_a1f97ce4-a49d-4bf8-b026-aa8d0724bb43.webp",
+                    "category": "bath-room"
+                }
+            ],
+            "rooms": []
+        },
+        {
+            "houseId": "a87ff679-a2f3-e71d-9181-a67b7542122c",
+            "location": "Mbeya, Tanzania",
+            "houseNumber": "H-12",
+            "houseName": "Green Villa",
+            "rating": 4.69,
+            "reviews": 456.00,
+            "paymentDuration": 12,
+            "houseDescription": "This beautiful and thoughtfully designed home offers.",
+            "houseServices": [
+                "wifi",
+                "electricity",
+                "water"
+            ],
+            "imageUrl": "http://localhost:8080/uploads/house_images/house_4_21cabd7f-d910-4609-959c-4f1d3138f48e.png",
+            "coordinates": [
+                -8.90910000,
+                33.45890000
+            ],
+            "paymentMethods": [
+                {
+                    "method": "M-pesa",
+                    "details": "+255673542345"
+                },
+                {
+                    "method": "Halo-pesa",
+                    "details": "+25565676345"
+                }
+            ],
+            "documents": [
+                "https://example.com/docs/ownership.pdf",
+                "https://example.com/docs/inspection-report.pdf"
+            ],
+            "hostId": {
+                "id": "22222222-2222-4222-8222-222222222222",
+                "fullname": "host",
+                "email": "host@gmail.com",
+                "profilepicture": null,
+                "phonenumber": "255687168841",
+                "role": "HOST"
+            },
+            "agentId": {
+                "id": "33333333-3333-4333-8333-333333333333",
+                "fullname": "agent",
+                "email": "agent@gmail.com",
+                "profilepicture": null,
+                "phonenumber": "255676383929",
+                "role": "AGENT"
+            },
+            "images": [],
+            "rooms": []
+        }
+    ],
+    "totalPages": 1,
+    "pageSize": 1000,
+    "currentPage": 1,
+    "totalElements": 4
+}
+
+The public listing only includes houses with at least one room whose status is
+not APPROVED. A house where every room is APPROVED (occupied) is omitted.
+`totalRooms` counts all rooms, regardless of status.
+
+====> Get all houses for admin
+Method: GET
+URL : http://localhost:8080/house/admin/all
+Headers : {
+    "Authorization": "Bearer <token>"
+}
+
+
+
+====> HOST and AGENT can get all his houses by his user id and search by house name and clientfullname
+Method: GET
+URL : http://localhost:8080/house/my
+URL : http://localhost:8080/house/my?houseName=A-01&fullname=client02
+Headers : {
+    "Authorization": "Bearer  
+<token>"
+}
+
+
+====> Get house by id  
+Method: GET
+URL : http://localhost:8080/house/by/:houseId
+f
+
+
+====> Get house images by house_id and category 
+Methode: GET
+URL : http://localhost:8080/house/images/a12f4d90-7c2b-4a65-9d31-6e8f0b2c1147/:category
+
+
+
+====> Update house by id by role HOST and ADMIN but HOST can only update his houses
+Method: PATCH
+URL : http://localhost:8080/house/:houseId
+Headers : {
+    "   Authorization": "Bearer <token>"        
+}
+JSON :  {
+  "location": "Dar es Salaam",
+  "houseNumber": "B12",
+  "houseName": "Palm Breeze Villa",
+  "paymentDuration": "3",
+  "houseDescription": "iko iwambi karibu ma sheri mpya",
+  "houseServices": "free wife",
+  "imageUrl": "data:image/jpeg;base64,iVBORw0KGgoAAAANSUhEUgAA"
+}
+
+
+
+====> Add a room to a house by role HOST, AGENT or ADMIN
+Method: POST
+URL : http://localhost:8080/house/rooms/:houseId
+Headers : {
+    "Authorization": "Bearer <token>"
+}
+JSON : {
+  "price": 15000,
+  "houseType": "SINGLE_ROOM",
+  "status": "AVAILABLE",
+  "images": [
+    {
+      "base64Data": "data:image/jpeg;base64,iVBORw0KGgoAAAANSUhEUgAA",
+      "category": "bedroom"
+    }
+  ]
+}
+
+NOTES:
+- images and clientId are optional.
+- paymentDuration is filled automatically from the house and is not accepted as
+  a create-room input.
+- houseType values: SINGLE_ROOM, SELF_CONTAINED, HOUSE, APARTMENT, FRAME, GUEST_HOUSE.
+- status values: AVAILABLE, PENDING, APPROVED, DECLINED.
+- If clientId is provided when creating a room, its status cannot be AVAILABLE.
+
+RESPONCE: {
+    "roomId": "7809f718-8b2b-4369-9eb0-e00c7c37815e",
+    "houseId": "a12f4d90-7c2b-4a65-9d31-6e8f0b2c1147",
+  "paymentDuration": 6,
+  "price": 15000,
+  "houseType": "SINGLE_ROOM",
+  "clientId": null,
+  "status": "AVAILABLE",
+  "images": [
+    {
+      "imageUrl": "http://localhost:8080/uploads/room_images/room_1_example.jpeg",
+      "category": "bedroom"
+    }
+  ]
+}
+
+
+====> Get all rooms for a house by house id
+Method: GET
+URL : http://localhost:8080/house/rooms:houseId
+RESPONCE: [
+    {
+        "roomId": "53d5a12b-8dce-4024-95f9-80fc6069d20d",
+        "houseId": "a12f4d90-7c2b-4a65-9d31-6e8f0b2c1147",
+        "paymentDuration": 6,
+        "price": 15000.00,
+        "houseType": "SINGLE_ROOM",
+        "clientId": null,
+        "status": "AVAILABLE",
+        "images": [
+            {
+                "imageUrl": "http://localhost:8080/uploads/room_images/room_53d5a12b-8dce-4024-95f9-80fc6069d20d_33955bf5-0694-4c02-9c09-05f460924dfe.jpeg",
+                "category": "bedroom"
+            }
+        ]
+    },
+    {
+        "roomId": "7809f718-8b2b-4369-9eb0-e00c7c37815e",
+        "houseId": "a12f4d90-7c2b-4a65-9d31-6e8f0b2c1147",
+        "price": 15000.00,
+        "houseType": "SINGLE_ROOM",
+        "clientId": null,
+        "status": "AVAILABLE",
+        "images": [
+            {
+                "imageUrl": "http://localhost:8080/uploads/room_images/room_7809f718-8b2b-4369-9eb0-e00c7c37815e_379fa372-f6a4-459e-8078-1bcac9454e34.jpeg",
+                "category": "bedroom"
+            }
+        ]
+    }
+]
+
+
+====> Get room by id    
+Method: GET
+URL : http://localhost:8080/house/rooms/:roomId
+RESPONCE: {
+    "roomId": "edb51c51-27b1-4305-8dc4-0e45c1d8c09c",
+    "houseId": "c83e7a21-5b64-4f90-a218-73d6e0b9452c",
+    "paymentDuration": 12,
+    "price": 15000.00,
+    "houseType": "SINGLE_ROOM",
+    "clientId": null,
+    "status": "AVAILABLE",
+    "images": [
+        {
+            "imageUrl": "http://localhost:8080/uploads/room_images/room_edb51c51-27b1-4305-8dc4-0e45c1d8c09c_1141c627-7082-46ef-a2f3-ad2135d30194.jpeg",
+            "category": "bedroom"
+        }
+    ]
+}
+
+
+====> Update room by id by role HOST, AGENT or ADMIN
+Method: PATCH
+URL : http://localhost:8080/house/rooms/:roomId
+Headers : {
+    "Authorization": "Bearer <token>"
+}
+JSON : {
+  "price": 17000,
+  "houseType": "SELF_CONTAINED",
+  "clientId": "25252525-2525-4252-8252-252525252525",
+  "status": "APPROVED",
+  "images": [
+    {
+      "base64Data": "data:image/jpeg;base64,<encoded-image-data>",
+      "category": "bedroom"
+    }
+  ]
+}
+
+Room images are optional. Omit `images` to keep the current images; provide an
+array to add images to the existing collection. Each image uses the same
+`base64Data` and optional `category` fields as room creation.
+
+To make a room vacant, send:
+JSON : {
+  "status": "AVAILABLE"
+}
+This clears the room clientId.
+
+Room paymentDuration is managed from the house and cannot be changed in this
+room update request. Updating the house paymentDuration updates all its rooms.
+
+
+====> Delete selected images for a room by role HOST, AGENT or ADMIN
+Method: DELETE
+URL : http://localhost:8080/house/rooms/images/:roomId
+Headers : {
+    "Authorization": "Bearer <token>"
+}
+JSON : [
+  "<room-image-id-1>",
+  "<room-image-id-2>"
+]
+RESPONSE: 204 No Content
+Only the listed images are removed. Get each `imageId` from the room response;
+IDs that do not belong to the specified room are rejected. HOST can only manage
+rooms belonging to their own houses.
+
+
+====> Delete room by id by role HOST, AGENT or ADMIN
+Method: DELETE
+URL : http://localhost:8080/house/rooms/:roomId
+Headers : {
+    "Authorization": "Bearer <token>"
+}
+RESPONSE: 204 No Content
+Deleting a room also decrements its house totalRooms count.
+
+
+
+====> Delete house by id by role HOST and ADMIN but HOST can only delete his houses
+Method: DELETE
+URL : http://localhost:8080/house/:houseId
+Headers : { 
+    "Authorization": "Bearer <token>"
+}
+
+
+
+====> Upload additional house images by role HOST, AGENT and ADMIN but HOST and AGENT can only upload images to his houses (also available for images added after house registration)
+Method: POST
+URL : http://localhost:8080/house/images/{houseId}
+Headers : {
+    "Authorization": "Bearer <token>"
+}
+JSON: {
+  "images": [
+    { "base64Data": "data:image/jpeg;base64,iVBORw0KGgoAAAANSUhEUgAA", "category": "bed-room" },
+    { "base64Data": "data:image/webp;base64,iVBORw0KGgoAAAANSUhEUgAA", "category": "bath-room" }
+  ]
+}
+
+
+
+====> Delete house image by role HOST and ADMIN but HOST can only delete images from his houses
+Method: DELETE
+URL : http://localhost:8080/house/images
+Headers : {
+    "Authorization": "Bearer <token>"
+}
+JSON: {
+    "imageIds": [
+        "1a2b3c4d-5e6f-4789-ab01-23456789cdef",
+        "2b3c4d5e-6f70-489a-b012-3456789abcde",
+        "3c4d5e6f-7081-49ab-c123-456789abcdef"
+    ]
+}
+
+
+
+====> Search houses by location, price and house type  by role CLIENT and ADMIN but HOST can only search his houses
+Method: GET
+URL : http://localhost:8080/house/houses/search?location=inyala&houseType=SINGLE_ROOM&price=40000-80000
+Headers : {
+    "Authorization": "Bearer <token>"
+}
+
+
+
+
+
+
+================ RENTAL REQUEST API ================
+
+Room is the rental unit. A house does not store a tenant/client. All tenant and
+booking information belongs to its room.
+
+Room status values:
+- AVAILABLE: no active rental request.
+- PENDING: a client has sent a rental request for the room.
+- APPROVED: the rental request was approved and the room is occupied.
+- DECLINED: accepted only by the rent-status endpoint; the request is deleted and
+  the room is returned to AVAILABLE.
+
+When a rent request is approved, its endDate is calculated from that room's
+paymentDuration (in months), starting on the approval date. The date is returned
+as `yyyy-MM-dd` on the rent-request response. `daysRemaining` is calculated from
+that date. Extending a rental adds months to the current endDate and recalculates
+daysRemaining. End date and timer data belong to the rent request for its room;
+durations for other rooms in the same house do not affect it.
+
+
+
+========> Create a rent request
+Method: POST
+URL: http://localhost:8080/rent
+Headers: {
+  "Authorization": "Bearer <token>"
+}
+JSON: {
+  "clientId": "44444444-4444-4444-8444-444444444444",
+  "roomId": "edb51c51-27b1-4305-8dc4-0e45c1d8c09c",
+  "clientName": "client",
+  "clientPhone": "0687168841"
+}
+
+RESPONSE: {
+    "id": "91d2e6f4-3a70-4b85-9c16-52f8a0d734be",
+  "roomId": "edb51c51-27b1-4305-8dc4-0e45c1d8c09c",
+  "houseOwnerId": "22222222-2222-4222-8222-222222222222",
+  "room": {
+    "roomId": "edb51c51-27b1-4305-8dc4-0e45c1d8c09c",
+    "houseId": "c83e7a21-5b64-4f90-a218-73d6e0b9452c",
+    "price": 15000.00,
+    "houseType": "SINGLE_ROOM",
+    "clientId": "44444444-4444-4444-8444-444444444444",
+    "clientName": "client",
+    "clientPhone": "0687168841",
+    "status": "PENDING",
+    "images": []
+  },
+  "daysRemaining": null,
+  "endDate": null
+}
+
+
+
+========> List rent requests
+Method: GET
+URL: http://localhost:8080/rent?page=0&size=20
+Headers: {
+  "Authorization": "Bearer <token>"
+}
+RESPONCE : {
+    "totalPages": 1,
+    "pageSize": 20,
+    "requests": [
+        {
+            "id": "91d2e6f4-3a70-4b85-9c16-52f8a0d734be",
+            "roomId": "edb51c51-27b1-4305-8dc4-0e45c1d8c09c",
+            "houseOwnerId": "22222222-2222-4222-8222-222222222222",
+            "room": {
+                "roomId": "edb51c51-27b1-4305-8dc4-0e45c1d8c09c",
+                "houseId": "c83e7a21-5b64-4f90-a218-73d6e0b9452c",
+                "price": 15000.00,
+                "houseType": "SINGLE_ROOM",
+                "clientId": "44444444-4444-4444-8444-444444444444",
+                "clientName": "client",
+                "clientPhone": "0687168841",
+                "status": "PENDING",
+                "images": [
+                    {
+                        "imageUrl": "http://localhost:8080/uploads/room_images/room_edb51c51-27b1-4305-8dc4-0e45c1d8c09c_1141c627-7082-46ef-a2f3-ad2135d30194.jpeg",
+                        "category": "bedroom"
+                    }
+                ]
+            },
+            "daysRemaining": null,
+            "endDate": null
+        },
+        {
+            "id": "b407c8e1-6f29-45a3-8d70-19e5f2a634bc",
+            "roomId": "5cd26b60-f32c-4750-ad11-192276c1c3ef",
+            "houseOwnerId": "22222222-2222-4222-8222-222222222222",
+            "room": {
+                "roomId": "5cd26b60-f32c-4750-ad11-192276c1c3ef",
+                "houseId": "c83e7a21-5b64-4f90-a218-73d6e0b9452c",
+                "price": 15000.00,
+                "houseType": "SINGLE_ROOM",
+                "clientId": "44444444-4444-4444-8444-444444444444",
+                "clientName": "client",
+                "clientPhone": "0687168841",
+                "status": "PENDING",
+                "images": [
+                    {
+                        "imageUrl": "http://localhost:8080/uploads/room_images/room_5cd26b60-f32c-4750-ad11-192276c1c3ef_d641c5a0-57ba-439f-a808-161275cc7005.jpeg",
+                        "category": "bedroom"
+                    }
+                ]
+            },
+            "daysRemaining": null,
+            "endDate": null
+        }
+    ],
+    "currentPage": 1,
+    "totalElements": 2
+}
+
+
+
+========> Get one rent request
+Method: GET
+URL: http://localhost:8080/rent/:rentRequestId
+Headers: {
+  "Authorization": "Bearer <token>"
+}
+
+RESPONCE : {
+    "id": "b407c8e1-6f29-45a3-8d70-19e5f2a634bc",
+    "roomId": "5cd26b60-f32c-4750-ad11-192276c1c3ef",
+    "houseOwnerId": "22222222-2222-4222-8222-222222222222",
+    "room": {
+        "roomId": "5cd26b60-f32c-4750-ad11-192276c1c3ef",
+        "houseId": "c83e7a21-5b64-4f90-a218-73d6e0b9452c",
+        "price": 15000.00,
+        "houseType": "SINGLE_ROOM",
+        "clientId": "44444444-4444-4444-8444-444444444444",
+        "clientName": "client",
+        "clientPhone": "0687168841",
+        "status": "PENDING",
+        "images": [
+            {
+                "imageUrl": "http://localhost:8080/uploads/room_images/room_5cd26b60-f32c-4750-ad11-192276c1c3ef_d641c5a0-57ba-439f-a808-161275cc7005.jpeg",
+                "category": "bedroom"
+            }
+        ]
+    },
+    "daysRemaining": null,
+    "endDate": null
+}
+
+
+
+========> Update rent-request / room status
+Method: PATCH
+URL: http://localhost:8080/rent/status/:rentRequestId
+Headers: {
+  "Authorization": "Bearer <token>"
+}
+JSON: {
+  "status": "APPROVED"
+}
+
+RESPONCE : {
+    "id": "91d2e6f4-3a70-4b85-9c16-52f8a0d734be",
+    "roomId": "edb51c51-27b1-4305-8dc4-0e45c1d8c09c",
+    "houseOwnerId": "22222222-2222-4222-8222-222222222222",
+    "room": {
+        "roomId": "edb51c51-27b1-4305-8dc4-0e45c1d8c09c",
+        "houseId": "c83e7a21-5b64-4f90-a218-73d6e0b9452c",
+        "price": 15000.00,
+        "houseType": "SINGLE_ROOM",
+        "clientId": "44444444-4444-4444-8444-444444444444",
+        "clientName": "client",
+        "clientPhone": "0687168841",
+        "status": "APPROVED",
+        "images": [
+            {
+                "imageUrl": "http://localhost:8080/uploads/room_images/room_edb51c51-27b1-4305-8dc4-0e45c1d8c09c_1141c627-7082-46ef-a2f3-ad2135d30194.jpeg",
+                "category": "bedroom"
+            }
+        ]
+    },
+    "daysRemaining": 360,
+    "endDate": "yyyy-MM-dd (calculated per room on approval)"
+}
+
+
+
+========> List approved rooms
+Method: GET
+URL: http://localhost:8080/rent/approved?page=0&size=30
+Optional filters: houseName, fullname
+Headers: {
+  "Authorization": "Bearer <token>"
+}
+RESPONSE: {
+    "totalPages": 1,
+    "approvedRooms": [
+        {
+            "rentRequestId": "91d2e6f4-3a70-4b85-9c16-52f8a0d734be",
+            "room": {
+                "roomId": "edb51c51-27b1-4305-8dc4-0e45c1d8c09c",
+                "houseId": "c83e7a21-5b64-4f90-a218-73d6e0b9452c",
+                "paymentDuration": 12,
+                "price": 15000.00,
+                "houseType": "SINGLE_ROOM",
+                "clientId": "44444444-4444-4444-8444-444444444444",
+                "clientName": "client",
+                "clientPhone": "0687168841",
+                "status": "APPROVED",
+                "images": [
+                    {
+                        "imageUrl": "http://localhost:8080/uploads/room_images/room_edb51c51-27b1-4305-8dc4-0e45c1d8c09c_1141c627-7082-46ef-a2f3-ad2135d30194.jpeg",
+                        "category": "bedroom"
+                    }
+                ]
+            },
+            "daysRemaining": 360,
+            "endDate": "yyyy-MM-dd (calculated per room on approval)"
+        },
+        {
+            "rentRequestId": "b407c8e1-6f29-45a3-8d70-19e5f2a634bc",
+            "room": {
+                "roomId": "5cd26b60-f32c-4750-ad11-192276c1c3ef",
+                "houseId": "c83e7a21-5b64-4f90-a218-73d6e0b9452c",
+                "price": 15000.00,
+                "houseType": "SINGLE_ROOM",
+                "clientId": "44444444-4444-4444-8444-444444444444",
+                "clientName": "client",
+                "clientPhone": "0687168841",
+                "status": "APPROVED",
+                "images": [
+                    {
+                        "imageUrl": "http://localhost:8080/uploads/room_images/room_5cd26b60-f32c-4750-ad11-192276c1c3ef_d641c5a0-57ba-439f-a808-161275cc7005.jpeg",
+                        "category": "bedroom"
+                    }
+                ]
+            },
+            "daysRemaining": 360,
+            "endDate": null
+        }
+    ],
+    "pageSize": 30,
+    "currentPage": 1,
+    "totalElements": 2
+}
